@@ -31,23 +31,42 @@ const client = new Client({
   ]
 });
 
+// Función para mostrar la hora de manera "hoy/ayer a las hh:mm AM/PM"
+function formatJoinTime(joinDate) {
+  const now = new Date();
+  const join = new Date(joinDate);
+
+  // Hoy
+  if (join.toDateString() === now.toDateString()) {
+    return `hoy a las ${join.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+  }
+
+  // Ayer
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+  if (join.toDateString() === yesterday.toDateString()) {
+    return `ayer a las ${join.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+  }
+
+  // Otro día
+  return join.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
 client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
-// ------------------------------
 // Comandos de texto
-// ------------------------------
 client.on('messageCreate', async message => {
-  if (message.author.bot) return;
+  if(message.author.bot) return;
 
   // Comando !hola
-  if (message.content.toLowerCase() === '!hola') {
+  if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
   // Comando !reglas
-  if (message.content.toLowerCase() === '!reglas') {
+  if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
 1. Sé respetuoso
@@ -59,58 +78,50 @@ client.on('messageCreate', async message => {
   }
 
   // Comando !testbienvenida
-  if (message.content.toLowerCase() === '!testbienvenida') {
+  if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
-      if (!channel) return message.channel.send('No encontré el canal de bienvenida.');
+      if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const joinTimestamp = Math.floor(message.member.joinedAt.getTime() / 1000);
+      const joinTime = formatJoinTime(message.member.joinedAt);
 
       channel.send({
         embeds: [{
           title: `Bienvenido a Inactivos`,
-          description: `<@${message.author.id}>\nSe unió el <t:${joinTimestamp}:f>`,
+          description: `<@${message.author.id}>`,
           color: 0x000000,
           image: { url: LOGO_URL },
-          footer: {
-            text: `Somos ahora ${message.guild.memberCount} miembros`
-          }
+          footer: { text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}` }
         }]
       });
-    } catch (err) {
+    } catch(err) {
       console.error(err);
       message.channel.send('Ocurrió un error al enviar la bienvenida.');
     }
   }
 });
 
-// ------------------------------
 // Bienvenida automática al entrar un nuevo miembro
-// ------------------------------
 client.on('guildMemberAdd', async member => {
   try {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
-    if (!channel) return;
+    if(!channel) return;
 
-    const joinTimestamp = Math.floor(member.joinedAt.getTime() / 1000);
+    const joinTime = formatJoinTime(member.joinedAt);
 
     channel.send({
       embeds: [{
         title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>\nSe unió el <t:${joinTimestamp}:f>`,
+        description: `<@${member.id}>`,
         color: 0x000000,
         image: { url: LOGO_URL },
-        footer: {
-          text: `Somos ahora ${member.guild.memberCount} miembros`
-        }
+        footer: { text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}` }
       }]
     });
-  } catch (err) {
+  } catch(err) {
     console.error(err);
   }
 });
 
-// ------------------------------
 // Login del bot
-// ------------------------------
 client.login(TOKEN);
