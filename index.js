@@ -17,11 +17,11 @@ app.listen(PORT, () => {
 // Bot de Discord
 // ------------------------------
 const { Client, GatewayIntentBits } = require('discord.js');
-const { DateTime } = require('luxon');
+const { DateTime } = require('luxon'); // Para hora local relativa
 
-const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
-const CHANNEL_ID = process.env.CHANNEL_ID; // Tu canal de bienvenida en Render
-const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de bienvenida
+const TOKEN = process.env.TOKEN;
+const CHANNEL_ID = process.env.CHANNEL_ID;
+const LOGO_URL = process.env.LOGO_URL;
 
 const client = new Client({
   intents: [
@@ -36,30 +36,14 @@ client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
-// Función para obtener hora relativa
-function formatJoinTime(date) {
-  const now = DateTime.local();
-  const joined = DateTime.fromJSDate(date).setZone(now.zoneName);
-
-  if (joined.hasSame(now, 'day')) {
-    return `hoy a las ${joined.toFormat('HH:mm')}`;
-  } else if (joined.hasSame(now.minus({ days: 1 }), 'day')) {
-    return `ayer a las ${joined.toFormat('HH:mm')}`;
-  } else {
-    return joined.toFormat('dd/MM/yyyy HH:mm');
-  }
-}
-
 // Comandos de texto
 client.on('messageCreate', async message => {
   if(message.author.bot) return;
 
-  // Comando !hola
   if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
-  // Comando !reglas
   if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
@@ -71,25 +55,34 @@ client.on('messageCreate', async message => {
     `);
   }
 
-  // Comando !testbienvenida
   if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
       if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const timeText = formatJoinTime(message.member.joinedAt);
+      const member = message.member;
+      const now = DateTime.now();
+      const joined = DateTime.fromJSDate(member.joinedAt);
+      const diffDays = now.diff(joined, 'days').days;
+
+      let timeText = '';
+      if(diffDays < 1) timeText = `hoy a las ${joined.toLocaleString(DateTime.TIME_24_SIMPLE)}`;
+      else if(diffDays < 2) timeText = `ayer a las ${joined.toLocaleString(DateTime.TIME_24_SIMPLE)}`;
+      else timeText = `el ${joined.toLocaleString(DateTime.DATETIME_MED)}`;
 
       channel.send({
-        content: `Bienvenido a Inactivos, <@${message.author.id}>!`,
         embeds: [{
-          title: 'Bienvenido a Inactivos',
+          author: {
+            name: member.user.username,
+            icon_url: member.user.displayAvatarURL({ dynamic: true }),
+          },
+          title: `Bienvenido a Inactivos`,
           color: 0x000000,
           image: { url: LOGO_URL },
           footer: {
             text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${timeText}`
           }
-        }],
-        allowedMentions: { users: [message.author.id] }
+        }]
       });
     } catch(err) {
       console.error(err);
@@ -98,30 +91,38 @@ client.on('messageCreate', async message => {
   }
 });
 
-// Bienvenida automática al entrar un nuevo miembro
+// Bienvenida automática
 client.on('guildMemberAdd', async member => {
   try {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if(!channel) return;
 
-    const timeText = formatJoinTime(member.joinedAt);
+    const now = DateTime.now();
+    const joined = DateTime.fromJSDate(member.joinedAt);
+    const diffDays = now.diff(joined, 'days').days;
+
+    let timeText = '';
+    if(diffDays < 1) timeText = `hoy a las ${joined.toLocaleString(DateTime.TIME_24_SIMPLE)}`;
+    else if(diffDays < 2) timeText = `ayer a las ${joined.toLocaleString(DateTime.TIME_24_SIMPLE)}`;
+    else timeText = `el ${joined.toLocaleString(DateTime.DATETIME_MED)}`;
 
     channel.send({
-      content: `Bienvenido a Inactivos, <@${member.id}>!`,
       embeds: [{
-        title: 'Bienvenido a Inactivos',
+        author: {
+          name: member.user.username,
+          icon_url: member.user.displayAvatarURL({ dynamic: true }),
+        },
+        title: `Bienvenido a Inactivos`,
         color: 0x000000,
         image: { url: LOGO_URL },
         footer: {
           text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${timeText}`
         }
-      }],
-      allowedMentions: { users: [member.id] }
+      }]
     });
   } catch(err) {
     console.error(err);
   }
 });
 
-// Login del bot
 client.login(TOKEN);
