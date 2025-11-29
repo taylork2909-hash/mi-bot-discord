@@ -16,51 +16,40 @@ app.listen(PORT, () => {
 // ------------------------------
 // Bot de Discord
 // ------------------------------
-const { 
-  Client, 
-  GatewayIntentBits, 
-  EmbedBuilder 
+const {
+  Client,
+  GatewayIntentBits,
+  EmbedBuilder
 } = require('discord.js');
 
 const TOKEN = process.env.TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const LOGO_URL = process.env.LOGO_URL;
 
-// ------------------------------
-// Función fecha estilo "Hoy • DD/MM/YYYY"
-// ------------------------------
-function formatearFecha() {
-  const ahora = new Date();
-  const dia = String(ahora.getDate()).padStart(2, '0');
-  const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-  const ano = ahora.getFullYear();
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
 
-  const fechaTexto = `${dia}/${mes}/${ano}`;
-
-  const hoy = new Date();
-  const ayer = new Date();
-  ayer.setDate(hoy.getDate() - 1);
-
-  const esHoy =
-    ahora.getDate() === hoy.getDate() &&
-    ahora.getMonth() === hoy.getMonth() &&
-    ahora.getFullYear() === hoy.getFullYear();
-
-  const esAyer =
-    ahora.getDate() === ayer.getDate() &&
-    ahora.getMonth() === ayer.getMonth() &&
-    ahora.getFullYear() === ayer.getFullYear();
-
-  if (esHoy) return `Hoy • ${fechaTexto}`;
-  if (esAyer) return `Ayer • ${fechaTexto}`;
-  return fechaTexto;
-}
+client.once('ready', () => {
+  console.log(`Bot listo! Conectado como ${client.user.tag}`);
+});
 
 // ------------------------------
-// Crear embed de bienvenida
+// Función que crea el embed
 // ------------------------------
 function crearEmbedBienvenida(user, guild) {
-  const fecha = formatearFecha();
+
+  // Crear la fecha manualmente (DD/MM/YYYY)
+  const fecha = new Date();
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const ano = fecha.getFullYear();
+  const fechaFinal = `${dia}/${mes}/${ano}`;
 
   return new EmbedBuilder()
     .setAuthor({
@@ -68,13 +57,13 @@ function crearEmbedBienvenida(user, guild) {
       iconURL: user.displayAvatarURL({ dynamic: true, size: 64 })
     })
     .setTitle("Bienvenido a Inactivos")
-    .setDescription(`Gracias por unirte, somos ahora ${guild.memberCount} miembros • ${fecha}`)
-    .setColor(0x000000) // negro como pediste
+    .setDescription(`Gracias por unirte, somos ahora ${guild.memberCount} miembros • ${fechaFinal}`)
+    .setColor(0x000000) // NEGRO
     .setImage(LOGO_URL);
 }
 
 // ------------------------------
-// Comando de prueba
+// Comando de prueba de bienvenida
 // ------------------------------
 client.on('messageCreate', async message => {
   if (message.author.bot) return;
@@ -95,7 +84,7 @@ client.on('messageCreate', async message => {
 });
 
 // ------------------------------
-// Bienvenida automática
+// Bienvenida automática al unirse
 // ------------------------------
 client.on('guildMemberAdd', async member => {
   try {
