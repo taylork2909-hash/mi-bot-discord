@@ -17,11 +17,11 @@ app.listen(PORT, () => {
 // Bot de Discord
 // ------------------------------
 const { Client, GatewayIntentBits } = require('discord.js');
-const { DateTime } = require('luxon'); // Para manejar la hora legible
+const { DateTime } = require('luxon');
 
-const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
-const CHANNEL_ID = process.env.CHANNEL_ID; // Canal de bienvenida
-const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de la crew
+const TOKEN = process.env.TOKEN;       
+const CHANNEL_ID = process.env.CHANNEL_ID; 
+const LOGO_URL = process.env.LOGO_URL; 
 
 const client = new Client({
   intents: [
@@ -36,7 +36,7 @@ client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
-// Función para formatear la hora local legible
+// Función para formatear hora local
 function formatoHora(memberDate) {
   const ahora = DateTime.now().setZone('local');
   const joinTime = DateTime.fromJSDate(memberDate).setZone('local');
@@ -78,11 +78,10 @@ client.on('messageCreate', async message => {
 
       channel.send({
         embeds: [{
-          title: `${message.author.username}`,
-          description: `Bienvenido a Inactivos`,
+          title: `Bienvenido a Inactivos`, // Título principal
           color: 0x000000,
-          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true }) }, // Foto de perfil usuario
-          image: { url: LOGO_URL }, // Logo de la crew grande
+          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto pequeña
+          image: { url: LOGO_URL }, // Logo grande
           footer: {
             text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}`
           }
@@ -105,11 +104,10 @@ client.on('guildMemberAdd', async member => {
 
     channel.send({
       embeds: [{
-        title: `${member.user.username}`, // Nombre del usuario
-        description: `Bienvenido a Inactivos`,
+        title: `Bienvenido a Inactivos`, // Título principal
         color: 0x000000,
-        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true }) }, // Foto de perfil usuario
-        image: { url: LOGO_URL }, // Logo de la crew grande
+        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto pequeña
+        image: { url: LOGO_URL }, // Logo grande
         footer: {
           text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}`
         }
