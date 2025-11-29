@@ -16,16 +16,17 @@ app.listen(PORT, () => {
 // ------------------------------
 // Bot de Discord
 // ------------------------------
-const {
-  Client,
-  GatewayIntentBits,
-  EmbedBuilder
+const { 
+  Client, 
+  GatewayIntentBits, 
+  EmbedBuilder 
 } = require('discord.js');
 
 const TOKEN = process.env.TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const LOGO_URL = process.env.LOGO_URL;
 
+// Crear cliente
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -35,21 +36,18 @@ const client = new Client({
   ]
 });
 
+// Ready
 client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
 // ------------------------------
-// Función que crea el embed
+// Funcion crear embed
 // ------------------------------
 function crearEmbedBienvenida(user, guild) {
 
-  // Crear la fecha manualmente (DD/MM/YYYY)
   const fecha = new Date();
-  const dia = String(fecha.getDate()).padStart(2, '0');
-  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-  const ano = fecha.getFullYear();
-  const fechaFinal = `${dia}/${mes}/${ano}`;
+  const fechaTexto = fecha.toLocaleDateString("es-CO"); // ejemplo: 29/11/2025
 
   return new EmbedBuilder()
     .setAuthor({
@@ -57,13 +55,15 @@ function crearEmbedBienvenida(user, guild) {
       iconURL: user.displayAvatarURL({ dynamic: true, size: 64 })
     })
     .setTitle("Bienvenido a Inactivos")
-    .setDescription(`Gracias por unirte, somos ahora ${guild.memberCount} miembros • ${fechaFinal}`)
-    .setColor(0x000000) // NEGRO
-    .setImage(LOGO_URL);
+    .setColor(0x000000)
+    .setImage(LOGO_URL)
+    .setFooter({
+      text: `Gracias por unirte, somos ahora ${guild.memberCount} miembros • ${fechaTexto}`
+    });
 }
 
 // ------------------------------
-// Comando de prueba de bienvenida
+// Comando de prueba
 // ------------------------------
 client.on('messageCreate', async message => {
   if (message.author.bot) return;
@@ -84,7 +84,7 @@ client.on('messageCreate', async message => {
 });
 
 // ------------------------------
-// Bienvenida automática al unirse
+// Bienvenida automática
 // ------------------------------
 client.on('guildMemberAdd', async member => {
   try {
