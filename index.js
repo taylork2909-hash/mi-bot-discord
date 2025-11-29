@@ -31,14 +31,9 @@ const client = new Client({
   ]
 });
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
-
-// Función para obtener timestamp de Discord
-function getDiscordTimestamp(date) {
-  return Math.floor(date.getTime() / 1000); // timestamp en segundos
-}
 
 // Comandos de texto
 client.on('messageCreate', async message => {
@@ -67,16 +62,16 @@ client.on('messageCreate', async message => {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
       if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const joinTimestamp = getDiscordTimestamp(message.member.joinedAt);
+      const joinTimestamp = Math.floor(message.member.joinedAt.getTime() / 1000);
 
       channel.send({
         embeds: [{
           title: `Bienvenido a Inactivos`,
-          description: `<@${message.author.id}>`, // Mención dentro del embed
-          color: 0x000000, // Barra negra
+          description: `<@${message.author.id}>`,
+          color: 0x000000,
           image: { url: LOGO_URL },
           footer: {
-            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • <t:${joinTimestamp}:f>`
+            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a <t:${joinTimestamp}:f>`
           }
         }]
       });
@@ -93,16 +88,16 @@ client.on('guildMemberAdd', async member => {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if(!channel) return;
 
-    const joinTimestamp = getDiscordTimestamp(member.joinedAt);
+    const joinTimestamp = Math.floor(member.joinedAt.getTime() / 1000);
 
     channel.send({
       embeds: [{
         title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>`, // Mención dentro del embed
-        color: 0x000000, // Barra negra
+        description: `<@${member.id}>`,
+        color: 0x000000,
         image: { url: LOGO_URL },
         footer: {
-          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • <t:${joinTimestamp}:f>`
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a <t:${joinTimestamp}:f>`
         }
       }]
     });
