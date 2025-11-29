@@ -17,6 +17,7 @@ app.listen(PORT, () => {
 // Bot de Discord
 // ------------------------------
 const { Client, GatewayIntentBits } = require('discord.js');
+const { DateTime } = require('luxon');
 
 const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
 const CHANNEL_ID = process.env.CHANNEL_ID; // Tu canal de bienvenida en Render
@@ -31,25 +32,24 @@ const client = new Client({
   ]
 });
 
-// Función para mostrar la hora de manera "hoy/ayer a las hh:mm AM/PM"
-function formatJoinTime(joinDate) {
-  const now = new Date();
-  const join = new Date(joinDate);
+// Función para formatear la fecha de bienvenida
+function formatoBienvenida(joinedAt) {
+  const now = DateTime.now().setZone('America/Bogota'); // Cambia a tu zona horaria
+  const joined = DateTime.fromJSDate(joinedAt).setZone('America/Bogota');
 
-  // Hoy
-  if (join.toDateString() === now.toDateString()) {
-    return `hoy a las ${join.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+  const diffDays = now.startOf('day').diff(joined.startOf('day'), 'days').toObject().days;
+
+  let diaTexto = '';
+  if (diffDays < 1) {
+    diaTexto = 'hoy';
+  } else if (diffDays < 2) {
+    diaTexto = 'ayer';
+  } else {
+    diaTexto = `hace ${Math.floor(diffDays)} días`;
   }
 
-  // Ayer
-  const yesterday = new Date();
-  yesterday.setDate(now.getDate() - 1);
-  if (join.toDateString() === yesterday.toDateString()) {
-    return `ayer a las ${join.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-  }
-
-  // Otro día
-  return join.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true });
+  const hora = joined.toFormat('HH:mm');
+  return `${diaTexto} a las ${hora}`;
 }
 
 client.once('ready', () => {
@@ -83,7 +83,7 @@ client.on('messageCreate', async message => {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
       if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const joinTime = formatJoinTime(message.member.joinedAt);
+      const joinTime = formatoBienvenida(message.member.joinedAt);
 
       channel.send({
         embeds: [{
@@ -91,7 +91,9 @@ client.on('messageCreate', async message => {
           description: `<@${message.author.id}>`,
           color: 0x000000,
           image: { url: LOGO_URL },
-          footer: { text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}` }
+          footer: {
+            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}`
+          }
         }]
       });
     } catch(err) {
@@ -107,7 +109,7 @@ client.on('guildMemberAdd', async member => {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if(!channel) return;
 
-    const joinTime = formatJoinTime(member.joinedAt);
+    const joinTime = formatoBienvenida(member.joinedAt);
 
     channel.send({
       embeds: [{
@@ -115,7 +117,9 @@ client.on('guildMemberAdd', async member => {
         description: `<@${member.id}>`,
         color: 0x000000,
         image: { url: LOGO_URL },
-        footer: { text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}` }
+        footer: {
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}`
+        }
       }]
     });
   } catch(err) {
