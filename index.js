@@ -19,9 +19,9 @@ app.listen(PORT, () => {
 const { Client, GatewayIntentBits } = require('discord.js');
 const { DateTime } = require('luxon');
 
-const TOKEN = process.env.TOKEN;       
-const CHANNEL_ID = process.env.CHANNEL_ID; 
-const LOGO_URL = process.env.LOGO_URL; 
+const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
+const CHANNEL_ID = process.env.CHANNEL_ID; // Tu canal de bienvenida en Render
+const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de bienvenida
 
 const client = new Client({
   intents: [
@@ -32,32 +32,34 @@ const client = new Client({
   ]
 });
 
+// Función para formatear la hora relativa "hoy a las HH:mm"
+function formatoHora(date) {
+  const dt = DateTime.fromJSDate(date).setZone('local');
+  const ahora = DateTime.local().setZone('local');
+
+  if (dt.hasSame(ahora, 'day')) {
+    return `hoy a las ${dt.toFormat('HH:mm')}`;
+  } else if (dt.plus({ days: 1 }).hasSame(ahora, 'day')) {
+    return `ayer a las ${dt.toFormat('HH:mm')}`;
+  } else {
+    return dt.toFormat('dd/MM/yyyy HH:mm');
+  }
+}
+
 client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
-
-// Función para formatear hora local
-function formatoHora(memberDate) {
-  const ahora = DateTime.now().setZone('local');
-  const joinTime = DateTime.fromJSDate(memberDate).setZone('local');
-
-  if (ahora.hasSame(joinTime, 'day')) {
-    return `hoy a ${joinTime.toFormat('hh:mm a')}`;
-  } else if (ahora.minus({ days: 1 }).hasSame(joinTime, 'day')) {
-    return `ayer a ${joinTime.toFormat('hh:mm a')}`;
-  } else {
-    return joinTime.toFormat('dd/MM/yyyy \'a las\' hh:mm a');
-  }
-}
 
 // Comandos de texto
 client.on('messageCreate', async message => {
   if(message.author.bot) return;
 
+  // Comando !hola
   if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
+  // Comando !reglas
   if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
@@ -69,6 +71,7 @@ client.on('messageCreate', async message => {
     `);
   }
 
+  // Comando !testbienvenida
   if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
@@ -76,12 +79,12 @@ client.on('messageCreate', async message => {
 
       const joinTime = formatoHora(message.member.joinedAt);
 
-      channel.send({
+      await channel.send({
         embeds: [{
-          title: `Bienvenido a Inactivos`, // Título principal
+          title: `Bienvenido a Inactivos`,
           color: 0x000000,
-          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto pequeña
-          image: { url: LOGO_URL }, // Logo grande
+          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true, size: 64 }) },
+          image: { url: LOGO_URL },
           footer: {
             text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}`
           }
@@ -100,22 +103,28 @@ client.on('guildMemberAdd', async member => {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if(!channel) return;
 
+    // Evitar doble envío
+    if (member._welcomed) return;
+    member._welcomed = true;
+
     const joinTime = formatoHora(member.joinedAt);
 
-    channel.send({
+    await channel.send({
       embeds: [{
-        title: `Bienvenido a Inactivos`, // Título principal
+        title: `Bienvenido a Inactivos`,
         color: 0x000000,
-        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto pequeña
-        image: { url: LOGO_URL }, // Logo grande
+        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true, size: 64 }) },
+        image: { url: LOGO_URL },
         footer: {
           text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}`
         }
       }]
     });
+
   } catch(err) {
     console.error(err);
   }
 });
 
+// Login del bot
 client.login(TOKEN);
