@@ -45,18 +45,23 @@ const client = new Client({
   ]
 });
 
-// Formatea la hora como "hoy a las HH:mm", "ayer a las HH:mm" o "dd/MM/yyyy HH:mm"
+// Formatea la hora como "hoy a las 2:29 pm", "ayer a las 2:29 pm" o "dd/MM/yyyy h:mm am/pm"
 function formatoHora(date) {
   if (!date) return 'fecha desconocida';
-  const dt = DateTime.fromJSDate(date);
+  // crear DateTime en zona local
+  const dt = DateTime.fromJSDate(date).setZone(DateTime.local().zoneName);
   const ahora = DateTime.local();
 
+  // formateo 12h con am/pm en minuscula
+  const hora12 = dt.toFormat('h:mm a').toLowerCase(); // e.g. "2:29 pm"
+
   if (dt.toISODate() === ahora.toISODate()) {
-    return `hoy a las ${dt.toFormat('HH:mm')}`;
+    return `hoy a las ${hora12}`;
   } else if (dt.toISODate() === ahora.minus({ days: 1 }).toISODate()) {
-    return `ayer a las ${dt.toFormat('HH:mm')}`;
+    return `ayer a las ${hora12}`;
   } else {
-    return dt.toFormat('dd/MM/yyyy HH:mm');
+    // para fechas antiguas mantenemos 12h + fecha completa
+    return `${dt.toFormat('dd/MM/yyyy')} ${dt.toFormat('h:mm a').toLowerCase()}`;
   }
 }
 
@@ -101,11 +106,10 @@ client.on('messageCreate', async message => {
           name: usuario.tag, // nombre#0000 (si prefiere solo username use usuario.username)
           iconURL: usuario.displayAvatarURL({ dynamic: true, size: 64 })
         })
-        .setTitle('Bienvenido a Inactivos') // texto prominente
-        .setDescription('Bienvenido a la crew Inactivos') // linea secundaria
-        .setColor(0x2f3136)
-        .setFooter({ text: `Gracias por unirte, somos ahora ${guild.memberCount} miembros • ${joinTime}` })
-        .setTimestamp();
+        .setTitle('Bienvenido a Inactivos') // texto prominente (solo aqui)
+        // descripcion removida para evitar duplicar "Bienvenido"
+        .setColor(0x000000) // barra izquierda en negro
+        .setFooter({ text: `Gracias por unirte, somos ahora ${guild.memberCount} miembros • ${joinTime}` });
 
       if (LOGO_URL) embed.setImage(LOGO_URL);
 
@@ -139,10 +143,9 @@ client.on('guildMemberAdd', async member => {
         iconURL: member.user.displayAvatarURL({ dynamic: true, size: 64 })
       })
       .setTitle('Bienvenido a Inactivos')
-      .setDescription('Bienvenido a la crew Inactivos')
-      .setColor(0x2f3136)
-      .setFooter({ text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}` })
-      .setTimestamp();
+      // descripcion removida para evitar texto repetido
+      .setColor(0x000000) // barra izquierda en negro
+      .setFooter({ text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}` });
 
     if (LOGO_URL) embed.setImage(LOGO_URL);
 
