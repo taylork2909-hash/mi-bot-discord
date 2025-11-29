@@ -31,42 +31,36 @@ const client = new Client({
   ]
 });
 
-client.once('clientReady', () => {
+// FIX: evitar doble ready
+let listo = false;
+client.on('clientReady', () => {
+  if (listo) return;
+  listo = true;
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
 // ------------------------------
-// Función para generar hora legible para todos
+// Función de hora correcta local
 // ------------------------------
-function formatJoinTime(date) {
-  const now = new Date();
-  const diffMs = now - date;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  const horas = date.toLocaleTimeString("es-ES", {
+function formatJoinDate(date) {
+  return date.toLocaleTimeString("es-ES", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true
   });
-
-  if (diffDays === 0) return `hoy a las ${horas}`;
-  if (diffDays === 1) return `ayer a las ${horas}`;
-
-  const fecha = date.toLocaleDateString("es-ES");
-  return `${fecha} a las ${horas}`;
 }
 
 // ------------------------------
 // Comandos
 // ------------------------------
 client.on('messageCreate', async message => {
-  if (message.author.bot) return;
+  if(message.author.bot) return;
 
-  if (message.content.toLowerCase() === '!hola') {
+  if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
-  if (message.content.toLowerCase() === '!reglas') {
+  if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
 1. Sé respetuoso
@@ -77,54 +71,63 @@ client.on('messageCreate', async message => {
     `);
   }
 
-  if (message.content.toLowerCase() === '!testbienvenida') {
+  // Test bienvenida
+  if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
-      if (!channel) return;
+      if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const timeString = formatJoinTime(message.member.joinedAt);
+      const joinTime = formatJoinDate(message.member.joinedAt);
 
       channel.send({
         embeds: [{
           title: `Bienvenido a Inactivos`,
-          description: `<@${message.author.id}>\n**${timeString}**`,
+          description: `<@${message.author.id}>`,
           color: 0x000000,
           image: { url: LOGO_URL },
-          footer: { text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros` }
+          footer: {
+            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a las ${joinTime}`
+          }
         }],
-        allowed_mentions: { users: [message.author.id] }
+        allowed_mentions: { users: [message.author.id] } // PING REAL
       });
 
-    } catch (err) {
+    } catch(err) {
       console.error(err);
+      message.channel.send('Ocurrió un error al enviar la bienvenida.');
     }
   }
 });
 
 // ------------------------------
-// Bienvenida real
+// Bienvenida automática
 // ------------------------------
 client.on('guildMemberAdd', async member => {
   try {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
-    if (!channel) return;
+    if(!channel) return;
 
-    const timeString = formatJoinTime(member.joinedAt);
+    const joinTime = formatJoinDate(member.joinedAt);
 
     channel.send({
       embeds: [{
         title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>\n**${timeString}**`,
+        description: `<@${member.id}>`,
         color: 0x000000,
         image: { url: LOGO_URL },
-        footer: { text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros` }
+        footer: {
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a las ${joinTime}`
+        }
       }],
-      allowed_mentions: { users: [member.id] }
+      allowed_mentions: { users: [member.id] } // PING REAL
     });
 
-  } catch (err) {
+  } catch(err) {
     console.error(err);
   }
 });
 
+// ------------------------------
+// Login
+// ------------------------------
 client.login(TOKEN);
