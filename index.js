@@ -31,17 +31,71 @@ const client = new Client({
   ]
 });
 
-// Convierte una fecha a timestamp UNIX
-function getUnix(date) {
-  return Math.floor(date.getTime() / 1000);
-}
-
 client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
-// Enviar bienvenida (función reutilizable)
-async function sendWelcome(member) {
+// Convierte fecha → UNIX timestamp
+function getUnix(date) {
+  return Math.floor(date.getTime() / 1000);
+}
+
+// ------------------------------
+// Comandos de texto
+// ------------------------------
+client.on('messageCreate', async message => {
+  if (message.author.bot) return;
+
+  // Comando !hola
+  if (message.content.toLowerCase() === '!hola') {
+    message.channel.send('¡Hola! El bot funciona correctamente ✅');
+  }
+
+  // Comando !reglas
+  if (message.content.toLowerCase() === '!reglas') {
+    message.channel.send(`
+**Reglas del servidor**
+1. Sé respetuoso
+2. No hagas spam
+3. No NSFW
+4. Evita drama
+5. Sigue las instrucciones del staff
+    `);
+  }
+
+  // Comando !testbienvenida
+  if (message.content.toLowerCase() === '!testbienvenida') {
+    try {
+      const channel = await message.guild.channels.fetch(CHANNEL_ID);
+      if (!channel) return message.channel.send('No encontré el canal de bienvenida.');
+
+      const unixTime = getUnix(message.member.joinedAt);
+
+      channel.send({
+        content: `<@${message.author.id}>`,
+        allowed_mentions: { users: [message.author.id] },
+        embeds: [{
+          title: `Bienvenido a Inactivos`,
+          description: `<@${message.author.id}>`,
+          color: 0x000000,
+          image: { url: LOGO_URL },
+          footer: {
+            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • <t:${unixTime}:t>`
+          }
+        }]
+      });
+
+    } catch (err) {
+      console.error(err);
+      message.channel.send('Ocurrió un error al enviar la bienvenida.');
+    }
+  }
+});
+
+// ------------------------------
+// Bienvenida automática al entrar un nuevo miembro
+// ------------------------------
+client.on('guildMemberAdd', async member => {
   try {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if (!channel) return;
@@ -49,15 +103,15 @@ async function sendWelcome(member) {
     const unixTime = getUnix(member.joinedAt);
 
     channel.send({
-      content: `<@${member.id}>`, 
+      content: `<@${member.id}>`,
       allowed_mentions: { users: [member.id] },
       embeds: [{
         title: `Bienvenido a Inactivos`,
-        description: `¡Nos alegra tenerte aquí!`,
+        description: `<@${member.id}>`,
         color: 0x000000,
         image: { url: LOGO_URL },
         footer: {
-          text: `Se unió • <t:${unixTime}:f>`
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • <t:${unixTime}:t>`
         }
       }]
     });
@@ -65,22 +119,7 @@ async function sendWelcome(member) {
   } catch (err) {
     console.error(err);
   }
-}
-
-// Comando !testbienvenida
-client.on('messageCreate', async message => {
-  if (message.author.bot) return;
-
-  if (message.content.toLowerCase() === '!testbienvenida') {
-    sendWelcome(message.member);
-  }
-
-  if (message.content.toLowerCase() === '!hola') {
-    message.reply('¡Hola! El bot funciona correctamente ✅');
-  }
 });
 
-// Evento cuando entra un nuevo usuario
-client.on('guildMemberAdd', sendWelcome);
-
+// Login del bot
 client.login(TOKEN);
