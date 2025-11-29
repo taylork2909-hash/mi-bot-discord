@@ -56,17 +56,19 @@ client.on('guildMemberAdd', async member => {
       timeText = joinTime.toFormat('dd/MM/yyyy • hh:mm a');
     }
 
+    // Mensaje de bienvenida con mención correcta
     await channel.send({
+      content: `<@${member.id}>`, // Esto asegura que se mencione al usuario
       embeds: [{
         title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>`,
+        description: `Disfruta tu estadía en el servidor!`,
         color: 0x000000,
         image: { url: LOGO_URL },
         footer: {
           text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${timeText}`
         }
       }],
-      allowedMentions: { users: [member.id] }
+      allowedMentions: { users: [member.id] } // <-- Esto permite que se haga la mención
     });
 
   } catch(err) {
