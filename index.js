@@ -17,11 +17,11 @@ app.listen(PORT, () => {
 // Bot de Discord
 // ------------------------------
 const { Client, GatewayIntentBits } = require('discord.js');
-const { DateTime } = require('luxon');
+const { DateTime } = require('luxon'); // Para manejar la hora legible
 
-const TOKEN = process.env.TOKEN;       // Token de Discord
-const CHANNEL_ID = process.env.CHANNEL_ID; // ID del canal de bienvenida
-const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de bienvenida
+const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
+const CHANNEL_ID = process.env.CHANNEL_ID; // Canal de bienvenida
+const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de la crew
 
 const client = new Client({
   intents: [
@@ -32,34 +32,32 @@ const client = new Client({
   ]
 });
 
-// Función para formatear la fecha de manera relativa
-function formatJoinTime(joinedAt) {
-  const now = DateTime.now();
-  const join = DateTime.fromJSDate(joinedAt);
-  
-  const diff = now.startOf('day').diff(join.startOf('day'), 'days').toObject().days;
-
-  let dayText = 'hoy';
-  if (diff >= 1 && diff < 2) dayText = 'ayer';
-  else if (diff >= 2) dayText = join.toFormat('dd/MM/yyyy');
-
-  return `${dayText} a las ${join.toFormat('HH:mm')}`;
-}
-
 client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
+
+// Función para formatear la hora local legible
+function formatoHora(memberDate) {
+  const ahora = DateTime.now().setZone('local');
+  const joinTime = DateTime.fromJSDate(memberDate).setZone('local');
+
+  if (ahora.hasSame(joinTime, 'day')) {
+    return `hoy a ${joinTime.toFormat('hh:mm a')}`;
+  } else if (ahora.minus({ days: 1 }).hasSame(joinTime, 'day')) {
+    return `ayer a ${joinTime.toFormat('hh:mm a')}`;
+  } else {
+    return joinTime.toFormat('dd/MM/yyyy \'a las\' hh:mm a');
+  }
+}
 
 // Comandos de texto
 client.on('messageCreate', async message => {
   if(message.author.bot) return;
 
-  // Comando !hola
   if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
-  // Comando !reglas
   if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
@@ -71,20 +69,20 @@ client.on('messageCreate', async message => {
     `);
   }
 
-  // Comando !testbienvenida
   if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
       if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const joinTime = formatJoinTime(message.member.joinedAt);
+      const joinTime = formatoHora(message.member.joinedAt);
 
       channel.send({
         embeds: [{
-          title: `Bienvenido a Inactivos`,
-          description: `<@${message.author.id}>`,
+          title: `${message.author.username}`,
+          description: `Bienvenido a Inactivos`,
           color: 0x000000,
-          image: { url: LOGO_URL },
+          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true }) }, // Foto de perfil usuario
+          image: { url: LOGO_URL }, // Logo de la crew grande
           footer: {
             text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}`
           }
@@ -103,14 +101,15 @@ client.on('guildMemberAdd', async member => {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if(!channel) return;
 
-    const joinTime = formatJoinTime(member.joinedAt);
+    const joinTime = formatoHora(member.joinedAt);
 
     channel.send({
       embeds: [{
-        title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>`,
+        title: `${member.user.username}`, // Nombre del usuario
+        description: `Bienvenido a Inactivos`,
         color: 0x000000,
-        image: { url: LOGO_URL },
+        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true }) }, // Foto de perfil usuario
+        image: { url: LOGO_URL }, // Logo de la crew grande
         footer: {
           text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}`
         }
@@ -121,5 +120,4 @@ client.on('guildMemberAdd', async member => {
   }
 });
 
-// Login del bot
 client.login(TOKEN);
