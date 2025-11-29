@@ -17,10 +17,10 @@ app.listen(PORT, () => {
 // Bot de Discord
 // ------------------------------
 const { Client, GatewayIntentBits } = require('discord.js');
+const { DateTime } = require('luxon');
 
-const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
-const CHANNEL_ID = process.env.CHANNEL_ID; // Tu canal de bienvenida en Render
-const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de bienvenida
+const TOKEN = process.env.TOKEN;
+const CHANNEL_ID = process.env.CHANNEL_ID;
 
 const client = new Client({
   intents: [
@@ -32,7 +32,7 @@ const client = new Client({
 });
 
 // ------------------------------
-// Prevenir doble mensaje
+// Evitar doble mensaje
 // ------------------------------
 const welcomedMembers = new Set();
 
@@ -44,12 +44,10 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
   if(message.author.bot) return;
 
-  // Comando !hola
   if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
-  // Comando !reglas
   if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
@@ -61,22 +59,23 @@ client.on('messageCreate', async message => {
     `);
   }
 
-  // Comando !testbienvenida
   if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
       if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const joinTime = message.member.joinedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const joinTime = DateTime.fromJSDate(message.member.joinedAt)
+                               .setZone('local')
+                               .toFormat("dd/MM/yyyy 'a las' HH:mm");
 
       channel.send({
         embeds: [{
-          title: message.author.username, // Nombre del usuario
+          title: message.author.username,
           description: `Bienvenido a Inactivos`,
           color: 0x000000,
-          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto de perfil pequeña
+          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true, size: 64 }) },
           footer: {
-            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a las ${joinTime}`
+            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}`
           }
         }]
       });
@@ -87,7 +86,7 @@ client.on('messageCreate', async message => {
   }
 });
 
-// Bienvenida automática al entrar un nuevo miembro
+// Bienvenida automática
 client.on('guildMemberAdd', async member => {
   if (welcomedMembers.has(member.id)) return;
   welcomedMembers.add(member.id);
@@ -96,16 +95,18 @@ client.on('guildMemberAdd', async member => {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if(!channel) return;
 
-    const joinTime = member.joinedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const joinTime = DateTime.fromJSDate(member.joinedAt)
+                             .setZone('local')
+                             .toFormat("dd/MM/yyyy 'a las' HH:mm");
 
     channel.send({
       embeds: [{
-        title: member.user.username, // Nombre del usuario
+        title: member.user.username,
         description: `Bienvenido a Inactivos`,
         color: 0x000000,
-        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto de perfil pequeña
+        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true, size: 64 }) },
         footer: {
-          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a las ${joinTime}`
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}`
         }
       }]
     });
@@ -114,5 +115,4 @@ client.on('guildMemberAdd', async member => {
   }
 });
 
-// Login del bot
 client.login(TOKEN);
