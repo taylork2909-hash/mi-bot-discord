@@ -71,10 +71,10 @@ client.on('messageCreate', async message => {
 
       channel.send({
         embeds: [{
-          title: `Bienvenido a Inactivos`,
-          description: `<@${message.author.id}>`,
+          title: message.author.username, // Nombre del usuario
+          description: `Bienvenido a Inactivos`,
           color: 0x000000,
-          image: { url: LOGO_URL },
+          thumbnail: { url: message.author.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto de perfil pequeña
           footer: {
             text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a las ${joinTime}`
           }
@@ -100,10 +100,10 @@ client.on('guildMemberAdd', async member => {
 
     channel.send({
       embeds: [{
-        title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>`,
+        title: member.user.username, // Nombre del usuario
+        description: `Bienvenido a Inactivos`,
         color: 0x000000,
-        image: { url: LOGO_URL },
+        thumbnail: { url: member.user.displayAvatarURL({ dynamic: true, size: 64 }) }, // Foto de perfil pequeña
         footer: {
           text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a las ${joinTime}`
         }
