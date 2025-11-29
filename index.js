@@ -1,3 +1,4 @@
+// index.js
 // ------------------------------
 // Mini servidor web para Render + UptimeRobot
 // ------------------------------
@@ -21,38 +22,38 @@ const { DateTime } = require('luxon');
 
 const TOKEN = process.env.TOKEN;           // token del bot
 const CHANNEL_ID = process.env.CHANNEL_ID; // id del canal de bienvenida
-const LOGO_URL = process.env.LOGO_URL;     // imagen grande (logo) para setImage
+const LOGO_URL = process.env.LOGO_URL;     // imagen grande opcional (logo)
 
 if (!TOKEN) {
-  console.error('ERROR: No se encontró TOKEN en las variables de entorno.');
+  console.error('ERROR: No se encontro TOKEN en las variables de entorno.');
   process.exit(1);
 }
 if (!CHANNEL_ID) {
-  console.error('ERROR: No se encontró CHANNEL_ID en las variables de entorno.');
+  console.error('ERROR: No se encontro CHANNEL_ID en las variables de entorno.');
   process.exit(1);
 }
 if (!LOGO_URL) {
-  console.warn('WARN: No se encontró LOGO_URL en las variables de entorno. La imagen grande no se mostrará.');
+  console.warn('WARN: No se encontro LOGO_URL en las variables de entorno. La imagen grande no se mostrara.');
 }
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent, // si va a usar comandos por mensaje
+    GatewayIntentBits.MessageContent, // solo si usa comandos por mensaje
     GatewayIntentBits.GuildMembers
   ]
 });
 
-// Función para formatear la hora relativa "hoy a las HH:mm" o "ayer a las HH:mm"
+// Formatea la hora como "hoy a las HH:mm", "ayer a las HH:mm" o "dd/MM/yyyy HH:mm"
 function formatoHora(date) {
   if (!date) return 'fecha desconocida';
-  const dt = DateTime.fromJSDate(date).setZone('local');
-  const ahora = DateTime.local().setZone('local');
+  const dt = DateTime.fromJSDate(date);
+  const ahora = DateTime.local();
 
-  if (dt.hasSame(ahora, 'day')) {
+  if (dt.toISODate() === ahora.toISODate()) {
     return `hoy a las ${dt.toFormat('HH:mm')}`;
-  } else if (dt.hasSame(ahora.minus({ days: 1 }), 'day')) {
+  } else if (dt.toISODate() === ahora.minus({ days: 1 }).toISODate()) {
     return `ayer a las ${dt.toFormat('HH:mm')}`;
   } else {
     return dt.toFormat('dd/MM/yyyy HH:mm');
@@ -63,7 +64,7 @@ client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
-// Comandos por mensaje simple
+// Comandos por mensaje simples (!hola, !reglas, !testbienvenida)
 client.on('messageCreate', async message => {
   if (message.author.bot) return;
   if (!message.guild) return; // ignorar DMs
@@ -87,45 +88,46 @@ client.on('messageCreate', async message => {
 
   if (content === '!testbienvenida') {
     try {
-      const channel = await message.guild.channels.fetch(CHANNEL_ID);
-      if (!channel) return message.channel.send('No encontré el canal de bienvenida.');
+      const canal = await message.guild.channels.fetch(CHANNEL_ID);
+      if (!canal || !canal.isTextBased()) return message.channel.send('No encontre el canal de bienvenida o no es un canal de texto.');
 
-      // usar joinedAt del miembro que ejecuta el comando (para test)
-      const joinTime = formatoHora(message.member?.joinedAt);
+      // para test usamos el miembro que ejecuta el comando
+      const usuario = message.author;
+      const guild = message.guild;
+      const joinTime = formatoHora(message.member?.joinedAt ?? new Date());
 
-      // construir embed con setAuthor para avatar pequeño a la izquierda
       const embed = new EmbedBuilder()
         .setAuthor({
-          name: message.author.username, // puede usar message.author.tag si desea el #0000
-          iconURL: message.author.displayAvatarURL({ dynamic: true, size: 64 })
+          name: usuario.tag, // nombre#0000 (si prefiere solo username use usuario.username)
+          iconURL: usuario.displayAvatarURL({ dynamic: true, size: 64 })
         })
-        .setDescription('Bienvenido a Inactivos')
+        .setTitle('Bienvenido a Inactivos') // texto prominente
+        .setDescription('Bienvenido a la crew Inactivos') // linea secundaria
         .setColor(0x2f3136)
-        .setFooter({ text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${joinTime}` })
+        .setFooter({ text: `Gracias por unirte, somos ahora ${guild.memberCount} miembros • ${joinTime}` })
         .setTimestamp();
 
-      // si hay LOGO_URL agregar imagen grande abajo
       if (LOGO_URL) embed.setImage(LOGO_URL);
 
-      await channel.send({ embeds: [embed] });
+      await canal.send({ embeds: [embed] });
       return message.channel.send('Embed de bienvenida enviado (test).');
     } catch (err) {
       console.error('Error en !testbienvenida:', err);
-      return message.channel.send('Ocurrió un error al enviar la bienvenida.');
+      return message.channel.send('Ocurrio un error al enviar la bienvenida.');
     }
   }
 });
 
-// Bienvenida automática al entrar un nuevo miembro
+// Bienvenida automatica al entrar un nuevo miembro
 client.on('guildMemberAdd', async member => {
   try {
-    const channel = await member.guild.channels.fetch(CHANNEL_ID);
-    if (!channel) {
-      console.warn('Canal de bienvenida no encontrado para', member.guild.id);
+    const canal = await member.guild.channels.fetch(CHANNEL_ID);
+    if (!canal || !canal.isTextBased()) {
+      console.warn('Canal de bienvenida no encontrado o no es texto para guild:', member.guild.id);
       return;
     }
 
-    // evitar doble envío (si el proceso se reinicia muy rapido)
+    // evitar doble envio si el proceso se reinicia rapido
     if (member._welcomed) return;
     member._welcomed = true;
 
@@ -133,17 +135,18 @@ client.on('guildMemberAdd', async member => {
 
     const embed = new EmbedBuilder()
       .setAuthor({
-        name: member.user.username,
+        name: member.user.tag, // nombre#0000
         iconURL: member.user.displayAvatarURL({ dynamic: true, size: 64 })
       })
-      .setDescription('Bienvenido a Inactivos')
+      .setTitle('Bienvenido a Inactivos')
+      .setDescription('Bienvenido a la crew Inactivos')
       .setColor(0x2f3136)
       .setFooter({ text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${joinTime}` })
       .setTimestamp();
 
     if (LOGO_URL) embed.setImage(LOGO_URL);
 
-    await channel.send({ embeds: [embed] });
+    await canal.send({ embeds: [embed] });
   } catch (err) {
     console.error('Error en guildMemberAdd:', err);
   }
