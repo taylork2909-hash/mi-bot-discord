@@ -1,8 +1,26 @@
+// ------------------------------
+// Mini servidor web para Render + UptimeRobot
+// ------------------------------
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('Bot Inactivos corriendo ✅');
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor web escuchando en puerto ${PORT}`);
+});
+
+// ------------------------------
+// Bot de Discord
+// ------------------------------
 const { Client, GatewayIntentBits } = require('discord.js');
 
-const TOKEN = process.env.TOKEN; 
-const CHANNEL_ID = process.env.CHANNEL_ID;
-const LOGO_URL = process.env.LOGO_URL;
+const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
+const CHANNEL_ID = process.env.CHANNEL_ID; // Tu canal de bienvenida en Render
+const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de bienvenida
 
 const client = new Client({
   intents: [
@@ -21,10 +39,12 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
   if(message.author.bot) return;
 
+  // Comando !hola
   if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
+  // Comando !reglas
   if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
@@ -36,6 +56,7 @@ client.on('messageCreate', async message => {
     `);
   }
 
+  // Comando !testbienvenida
   if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
@@ -46,8 +67,8 @@ client.on('messageCreate', async message => {
       channel.send({
         embeds: [{
           title: `Bienvenido a Inactivos`,
-          description: `<@${message.author.id}>`,
-          color: 0x000000,
+          description: `<@${message.author.id}>`, // Mención dentro del embed
+          color: 0x000000, // Barra negra
           image: { url: LOGO_URL },
           footer: {
             text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a las ${joinTime}`
@@ -72,8 +93,8 @@ client.on('guildMemberAdd', async member => {
     channel.send({
       embeds: [{
         title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>`,
-        color: 0x000000,
+        description: `<@${member.id}>`, // Mención dentro del embed
+        color: 0x000000, // Barra negra
         image: { url: LOGO_URL },
         footer: {
           text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a las ${joinTime}`
@@ -85,4 +106,5 @@ client.on('guildMemberAdd', async member => {
   }
 });
 
+// Login del bot
 client.login(TOKEN);
