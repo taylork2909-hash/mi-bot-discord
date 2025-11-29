@@ -1,16 +1,16 @@
 // ------------------------------
-// Mini servidor web para Render + UptimeRobot
+// Mini servidor para Render (NO BORRAR)
 // ------------------------------
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.send('Bot Inactivos corriendo ✅');
+  res.send('Bot Inactivos corriendo');
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor web escuchando en puerto ${PORT}`);
+  console.log(`Servidor web escuchando en el puerto ${PORT}`);
 });
 
 // ------------------------------
@@ -26,108 +26,88 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent
   ]
 });
 
-// FIX: evitar doble ready
-let listo = false;
-client.on('clientReady', () => {
-  if (listo) return;
-  listo = true;
+client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
 // ------------------------------
-// Función de hora correcta local
+// Función para hora local del servidor (solo arreglar estilo)
 // ------------------------------
-function formatJoinDate(date) {
-  return date.toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
-  });
+function formatearHora(fecha) {
+  return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatearFecha(fecha) {
+  const hoy = new Date();
+  const diferenciaDias = Math.floor((hoy - fecha) / (1000 * 60 * 60 * 24));
+
+  if (diferenciaDias === 0) {
+    return `hoy a las ${formatearHora(fecha)}`;
+  } else if (diferenciaDias === 1) {
+    return `ayer a las ${formatearHora(fecha)}`;
+  } else {
+    return fecha.toLocaleDateString('es-ES') + ` a las ${formatearHora(fecha)}`;
+  }
 }
 
 // ------------------------------
-// Comandos
+// Comando de prueba (!testbienvenida)
 // ------------------------------
 client.on('messageCreate', async message => {
-  if(message.author.bot) return;
+  if (message.author.bot) return; // Ignorar bots
+  if (!message.guild) return; // Ignorar mensajes privados
+  if (message.content !== '!testbienvenida') return; // SOLO si tú escribes esto
 
-  if(message.content.toLowerCase() === '!hola') {
-    message.channel.send('¡Hola! El bot funciona correctamente ✅');
-  }
+  const channel = await message.guild.channels.fetch(CHANNEL_ID);
+  if (!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-  if(message.content.toLowerCase() === '!reglas') {
-    message.channel.send(`
-**Reglas del servidor**
-1. Sé respetuoso
-2. No hagas spam
-3. No NSFW
-4. Evita drama
-5. Sigue las instrucciones del staff
-    `);
-  }
+  const ahora = new Date();
+  const fechaFormateada = formatearFecha(ahora);
 
-  // Test bienvenida
-  if(message.content.toLowerCase() === '!testbienvenida') {
-    try {
-      const channel = await message.guild.channels.fetch(CHANNEL_ID);
-      if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
-
-      const joinTime = formatJoinDate(message.member.joinedAt);
-
-      channel.send({
-        embeds: [{
-          title: `Bienvenido a Inactivos`,
-          description: `<@${message.author.id}>`,
-          color: 0x000000,
-          image: { url: LOGO_URL },
-          footer: {
-            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a las ${joinTime}`
-          }
-        }],
-        allowed_mentions: { users: [message.author.id] } // PING REAL
-      });
-
-    } catch(err) {
-      console.error(err);
-      message.channel.send('Ocurrió un error al enviar la bienvenida.');
-    }
-  }
+  channel.send({
+    embeds: [{
+      title: `Bienvenido a Inactivos`,
+      description: `<@${message.author.id}>`, // AQUÍ sí funciona la mención
+      color: 0x000000,
+      image: { url: LOGO_URL },
+      footer: {
+        text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${fechaFormateada}`
+      }
+    }]
+  });
 });
 
 // ------------------------------
-// Bienvenida automática
+// Bienvenida real al unirse
 // ------------------------------
 client.on('guildMemberAdd', async member => {
   try {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
-    if(!channel) return;
+    if (!channel) return;
 
-    const joinTime = formatJoinDate(member.joinedAt);
+    const ahora = new Date();
+    const fechaFormateada = formatearFecha(ahora);
 
     channel.send({
       embeds: [{
         title: `Bienvenido a Inactivos`,
-        description: `<@${member.id}>`,
+        description: `<@${member.id}>`, // AQUÍ sí menciona al usuario correctamente
         color: 0x000000,
         image: { url: LOGO_URL },
         footer: {
-          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a las ${joinTime}`
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${fechaFormateada}`
         }
-      }],
-      allowed_mentions: { users: [member.id] } // PING REAL
+      }]
     });
 
-  } catch(err) {
+  } catch (err) {
     console.error(err);
   }
 });
 
-// ------------------------------
-// Login
-// ------------------------------
 client.login(TOKEN);
