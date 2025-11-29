@@ -66,7 +66,8 @@ function formatoHora(date) {
 }
 
 client.once('ready', () => {
-  console.log(`Bot listo! Conectado como ${client.user.tag}`);
+  console.log(`Bot listo! Conectado como ${client.user.tag} (pid ${process.pid})`);
+  console.log('listeners guildMemberAdd:', client.listeners('guildMemberAdd').length);
 });
 
 // Comandos por mensaje simples (!hola, !reglas, !testbienvenida)
@@ -123,6 +124,7 @@ client.on('messageCreate', async message => {
 });
 
 // Bienvenida automatica al entrar un nuevo miembro
+console.log('[guildMemberAdd] evento recibido para', member.id, 'pid', process.pid, 'hora', new Date().toISOString());
 client.on('guildMemberAdd', async member => {
   try {
     const canal = await member.guild.channels.fetch(CHANNEL_ID);
@@ -159,3 +161,4 @@ client.on('guildMemberAdd', async member => {
 client.login(TOKEN).catch(err => {
   console.error('Fallo al loguear el bot:', err);
 });
+
