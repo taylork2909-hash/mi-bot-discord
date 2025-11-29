@@ -35,6 +35,11 @@ client.once('ready', () => {
   console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
+// Función para obtener timestamp de Discord
+function getDiscordTimestamp(date) {
+  return Math.floor(date.getTime() / 1000); // timestamp en segundos
+}
+
 // Comandos de texto
 client.on('messageCreate', async message => {
   if(message.author.bot) return;
@@ -62,7 +67,7 @@ client.on('messageCreate', async message => {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
       if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const joinTime = message.member.joinedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const joinTimestamp = getDiscordTimestamp(message.member.joinedAt);
 
       channel.send({
         embeds: [{
@@ -71,7 +76,7 @@ client.on('messageCreate', async message => {
           color: 0x000000, // Barra negra
           image: { url: LOGO_URL },
           footer: {
-            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a las ${joinTime}`
+            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • <t:${joinTimestamp}:f>`
           }
         }]
       });
@@ -88,7 +93,7 @@ client.on('guildMemberAdd', async member => {
     const channel = await member.guild.channels.fetch(CHANNEL_ID);
     if(!channel) return;
 
-    const joinTime = member.joinedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const joinTimestamp = getDiscordTimestamp(member.joinedAt);
 
     channel.send({
       embeds: [{
@@ -97,7 +102,7 @@ client.on('guildMemberAdd', async member => {
         color: 0x000000, // Barra negra
         image: { url: LOGO_URL },
         footer: {
-          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a las ${joinTime}`
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • <t:${joinTimestamp}:f>`
         }
       }]
     });
