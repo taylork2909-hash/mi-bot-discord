@@ -17,11 +17,10 @@ app.listen(PORT, () => {
 // Bot de Discord
 // ------------------------------
 const { Client, GatewayIntentBits } = require('discord.js');
-const { DateTime } = require('luxon');
 
-const TOKEN = process.env.TOKEN;
-const CHANNEL_ID = process.env.CHANNEL_ID;
-const LOGO_URL = process.env.LOGO_URL;
+const TOKEN = process.env.TOKEN;       // Tu token de Discord en Render
+const CHANNEL_ID = process.env.CHANNEL_ID; // Tu canal de bienvenida en Render
+const LOGO_URL = process.env.LOGO_URL; // URL de la imagen de bienvenida
 
 const client = new Client({
   intents: [
@@ -32,55 +31,26 @@ const client = new Client({
   ]
 });
 
-// Función para generar hora relativa
-function formatJoinTime(date) {
-  const now = DateTime.now();
-  const joinTime = DateTime.fromJSDate(date).setZone(now.zoneName);
+// ------------------------------
+// Prevenir doble mensaje
+// ------------------------------
+const welcomedMembers = new Set();
 
-  if (joinTime.hasSame(now, 'day')) {
-    return `hoy a las ${joinTime.toFormat('hh:mm a')}`;
-  } else if (joinTime.hasSame(now.minus({ days: 1 }), 'day')) {
-    return `ayer a las ${joinTime.toFormat('hh:mm a')}`;
-  } else {
-    return joinTime.toFormat('dd/MM/yyyy • hh:mm a');
-  }
-}
-
-// Bienvenida automática
-client.on('guildMemberAdd', async member => {
-  try {
-    const channel = await member.guild.channels.fetch(CHANNEL_ID);
-    if (!channel) return;
-
-    const timeText = formatJoinTime(member.joinedAt);
-
-    await channel.send({
-      content: `<@${member.id}>`,
-      embeds: [{
-        title: `Bienvenido a Inactivos`,
-        description: `Disfruta tu estadía en el servidor!`,
-        color: 0x000000,
-        image: { url: LOGO_URL },
-        footer: {
-          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • ${timeText}`
-        }
-      }],
-      allowedMentions: { users: [member.id] }
-    });
-  } catch (err) {
-    console.error(err);
-  }
+client.once('ready', () => {
+  console.log(`Bot listo! Conectado como ${client.user.tag}`);
 });
 
 // Comandos de texto
 client.on('messageCreate', async message => {
-  if (message.author.bot) return;
+  if(message.author.bot) return;
 
-  if (message.content.toLowerCase() === '!hola') {
+  // Comando !hola
+  if(message.content.toLowerCase() === '!hola') {
     message.channel.send('¡Hola! El bot funciona correctamente ✅');
   }
 
-  if (message.content.toLowerCase() === '!reglas') {
+  // Comando !reglas
+  if(message.content.toLowerCase() === '!reglas') {
     message.channel.send(`
 **Reglas del servidor**
 1. Sé respetuoso
@@ -91,37 +61,58 @@ client.on('messageCreate', async message => {
     `);
   }
 
-  if (message.content.toLowerCase() === '!testbienvenida') {
+  // Comando !testbienvenida
+  if(message.content.toLowerCase() === '!testbienvenida') {
     try {
       const channel = await message.guild.channels.fetch(CHANNEL_ID);
-      if (!channel) return message.channel.send('No encontré el canal de bienvenida.');
+      if(!channel) return message.channel.send('No encontré el canal de bienvenida.');
 
-      const timeText = formatJoinTime(message.member.joinedAt);
+      const joinTime = message.member.joinedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      await channel.send({
-        content: `<@${message.author.id}>`,
+      channel.send({
         embeds: [{
           title: `Bienvenido a Inactivos`,
-          description: `Disfruta tu estadía en el servidor!`,
+          description: `<@${message.author.id}>`,
           color: 0x000000,
           image: { url: LOGO_URL },
           footer: {
-            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • ${timeText}`
+            text: `Gracias por unirte, somos ahora ${message.guild.memberCount} miembros • hoy a las ${joinTime}`
           }
-        }],
-        allowedMentions: { users: [message.author.id] }
+        }]
       });
-
-    } catch (err) {
+    } catch(err) {
       console.error(err);
-      message.channel.send('Ocurrió un error al enviar la bienvenida de prueba.');
+      message.channel.send('Ocurrió un error al enviar la bienvenida.');
     }
   }
 });
 
-// Login del bot
-client.once('ready', () => {
-  console.log(`Bot listo! Conectado como ${client.user.tag}`);
+// Bienvenida automática al entrar un nuevo miembro
+client.on('guildMemberAdd', async member => {
+  if (welcomedMembers.has(member.id)) return;
+  welcomedMembers.add(member.id);
+
+  try {
+    const channel = await member.guild.channels.fetch(CHANNEL_ID);
+    if(!channel) return;
+
+    const joinTime = member.joinedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    channel.send({
+      embeds: [{
+        title: `Bienvenido a Inactivos`,
+        description: `<@${member.id}>`,
+        color: 0x000000,
+        image: { url: LOGO_URL },
+        footer: {
+          text: `Gracias por unirte, somos ahora ${member.guild.memberCount} miembros • hoy a las ${joinTime}`
+        }
+      }]
+    });
+  } catch(err) {
+    console.error(err);
+  }
 });
 
+// Login del bot
 client.login(TOKEN);
